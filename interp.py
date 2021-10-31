@@ -9,7 +9,7 @@ from websockets import connect
 #TODO change payload to bits, try other network, send larger packets (strip)
 
 #Sets ip address of modeMCU
-esp8266host = "ws://192.168.0.159:81"
+esp8266host = "ws://192.168.1.149:81"
 
 # Create a handler for the websocket connection. 
 # from https://stackoverflow.com/questions/37369849/how-can-i-implement-asyncio-websockets-in-a-class
@@ -31,23 +31,23 @@ class EchoWebsocket:
 
 
 # Number of pixels in strip
-num_pixels = 106
-# Starting position of strip, first led. (Canvas is 1600x900)
-start_pos = [6,180]
+num_pixels = 20
+# Starting position of strip, first led.  Grid starts in upper left.  As Y increases start point is further down (Canvas is 1920x1080)
+start_pos = [50,50]
 # angle of strip
 # TODO fix angle equations (possibly only for draw but check draw_strip and set_strip)
-angle = 0
+angle = 0 * (-1)
 # length of led strip
-length = 600 
+length = 200 
 # Create a regstrip object.  Equal to one rgb led strip.
 rgbstrip = Rgbstrip(num_pixels, start_pos, angle, length)
 # Canvas size (Video resolution for now)
 #TODO: Increase canvas size to hd and have video play in it
-canvas = (640, 360)
+canvas = (1920, 1080)
 
 
 # Create a VideoCapture object and read from input file
-cap = cv2.VideoCapture('video/clines360p.mp4')
+cap = cv2.VideoCapture('video/flow720p.mp4')
 
 # Check if camera opened successfully
 if (cap.isOpened()== False): 
@@ -56,7 +56,7 @@ if (cap.isOpened()== False):
 # all async calls MUST live in an async fn()
 async def main():
     # In this context, we want an EchoWebSocket.  Let's call him 'echo'
-    async with EchoWebsocket() as echo: 
+    async with EchoWebsocket() as echo:
         # Read until video is completed
         while(cap.isOpened()):
 
@@ -64,15 +64,13 @@ async def main():
             # Capture frame-by-frame
             ret, frame = cap.read()
 
-            print("PIXEL ==================================================")
-            # rgbstrip - get rgb values for all leds in strip using get
+            print("SEND ==================================================")
 
-            for i in range(num_pixels):
-                current_led = rgbstrip.get_rgb(frame, num_pixels, i)
                 #pack the payload to be sent in websocket and send it
-                payload = f"{current_led[0]}:{current_led[1]};{current_led[2]}." + str(i)
-                # even if it returns None, we must await async fn()s
-                await echo.send(payload)
+            payload = np.array(rgbstrip.get_rgb_strip(frame, num_pixels))
+            #print(payload)
+            # even if it returns None, we must await async fn()
+            await echo.send(payload.tobytes())
 
 
             print("VIDEO ==================================================")
